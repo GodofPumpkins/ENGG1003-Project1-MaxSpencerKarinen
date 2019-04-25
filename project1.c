@@ -1,8 +1,8 @@
 /*
-Coding Project 1 for ENGG1003
-Written by Max Spencer Karinen - c3264546 - spencerkarinen@gmail.com
-Performs a variety of encryption and decryption algorithms
-Last Updated 10/04/2019
+Coding Project 1 for UON ENGG1003
+Written by Max Spencer Karinen - c3264546 - spencerkarinen@gmail.com - c3264546@uon.edu.au
+Performs a variety of encryption and decryption algorithms, from both console and file IO
+Last Updated 24/04/2019
 */
 
 
@@ -45,25 +45,34 @@ int findLargest(int *x, int n);
 Main function, essentially contains an interface for the various encryption and decryption algorithms used in the project
 
 
-Last Updated 10/04/2019
+Last Updated 24/04/2019
 */
 int main()
 {
-	char subEncryptArray[100];
-	char subDecryptArray[100];
+	//arrays to hold text
+	char subEncryptArray[1000]; //Array to hold text that is then encrypted, size is hard coded but can be changed //TODO make array size user defined?
+	char subDecryptArray[1000]; //Same as above but to hold decrypted text
+	
+	//file pointers that will be specified by the user
 	FILE *cipherKeyRead; //file IO pointer to read cipher keys
 	FILE *cipherKeyWrite; //file IO pointer to write cipher keys
 	FILE *userText; //file IO pointer for reading files from the user
+	
+	//file pointers for writing encrypted/decrypted text
 	FILE *decrypted; //file IO pointer to write decrypted messages
-	decrypted = fopen("decrypted.txt", "w");
+	decrypted = fopen("decrypted.txt", "w"); //the file 'decrypted.txt' is used to store decrypted text
+	
 	FILE *encrypted; //file IO pointer to write encrypted messages
-	encrypted = fopen("encrypted.txt", "w");
-	int fileSize;
+	encrypted = fopen("encrypted.txt", "w"); //the file 'encrypted.txt' is used to store encrypted text
+	
+	//variables/arrays used later in the program
+	int fileSize; //int used when the program has to find the size of a file given by the user
+	
 	char subKey[27]; //an array that will be used to hold a substitution key later
-	char fileName[256]; //array to hold file names
-	int rotKey; //int to hold a user - inputted rotation key
+	char fileName[256]; //array to hold file names - size is set to 256, could be probably be lower
+	
+	int rotKey; //int to hold a user-inputted rotation key
 	int count = 0; //counter, reused many times
-	int bigChoice;
 
 	int choice = 0; //integer to store the user's choice
 	int inputMethod = 0; //integer to store the input method the user wants to use
@@ -91,7 +100,7 @@ int main()
 			printf("7: Exit program\n\n");
 			scanf("%d", &choice); //wait for the user to input their choice
 		}
-		if(choice != 7)
+		if(choice != 7)//skips the second choice if the user wants to exit the program
 		{
 			printf("\nWould you like to enter text \n1: from a file or \n2: through manual input?\n\n");//####TODO sanitize input
 			scanf("%d", &inputMethod);
@@ -103,8 +112,8 @@ int main()
 			}
 		}
 		//consolidates the two choices from the user into one integer, first digit is what they want to do and second digit is the input method they want to use
-		bigChoice = ((choice * 10) + inputMethod);
-		switch(bigChoice)
+		
+		switch((choice * 10) + inputMethod)
 		{
 			case 70:
 
@@ -116,7 +125,7 @@ int main()
 				break;
 
 			case 11: //rotation cipher encryption from file
-				printf("\n11\n");
+				printf("\n11\n"); //TODO delete test markers
 				printf("What is the name of the file you wish to encrypt? Include the filetype (eg .txt) at the end\n\n");
 				scanf("%s", fileName);
 
@@ -138,6 +147,14 @@ int main()
 			
 			case 12: //rotation cipher encryption from console input
 				printf("\n12");
+				printf("\nPlease enter the encryption key\n\n");
+				scanf("%s", rotKey);
+				printf("\nPlease enter the text to be encrypted\n\n");
+				scanf("%s", subEncryptArray);
+				rotationEncrypt(subEncryptArray, strlen(subEncryptArray), rotKey);
+				
+				fprintf(encrypted, "%s", subEncryptArray);
+				printf("The encrypted string is %s\n\n successfully written to encrypted.txt\n\n", subEncryptArray, fileName);
 				break;
 			
 			case 21: //rotation cipher decryption from file input
