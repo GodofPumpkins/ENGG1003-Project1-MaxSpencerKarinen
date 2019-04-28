@@ -11,6 +11,7 @@ Last Updated 24/04/2019
 #include <stdlib.h> //a bunch of useful functions, put in more out of habit than anything else
 #include <math.h> //standard library for a variety of mathematical functions
 #include <string.h> //standard library for a variety of string functions
+#include <ctype.h> //library with character parsing functions
 
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FUNCTION DECLARATIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -23,11 +24,11 @@ void rotationDecryptKey(char *x, int n, int k);
 
 //a function to decrypt an array without knowing the rotation amount, spell checks to find legible words
 //returns key value
-int rotationDecryptNoKeyCheck(char *x, int n);
+int rotationDecryptForce(char *x, int n);
 
 //a function to decrypt an array without knowing the rotation amount, assumes most common letter is e
 //returns key value
-int rotationDecryptNoKeyStatistical(char *x, int n);
+int rotationDecryptNoKey(char *x, int n);
 
 //a function to encrypt an array with a given substitution cipher
 void subEncrypt(char *x, int n, char *k);
@@ -37,6 +38,12 @@ void subDecrypt(char *x, int n, char *k);
 
 //a function to find the largest element of an array
 int findLargest(int *x, int n);
+
+//a function to check if a file exists
+int fileExists(char *filename);
+
+//a function that checks how many words in a file are in the dictionary
+int spellCheck(char *x, int n);
 
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -50,13 +57,14 @@ Last Updated 24/04/2019
 int main()
 {
 	//arrays to hold text
-	char subEncryptArray[1000]; //Array to hold text that is then encrypted, size is hard coded but can be changed //TODO make array size user defined?
-	char subDecryptArray[1000]; //Same as above but to hold decrypted text
+	char encryptArray[10000]; //Array to hold text that is then encrypted, size is hard coded but can be changed //TODO make array size user defined?
+	char decryptArray[10000]; //Same as above but to hold decrypted text
 	
 	//file pointers that will be specified by the user
 	FILE *cipherKeyRead; //file IO pointer to read cipher keys
 	FILE *cipherKeyWrite; //file IO pointer to write cipher keys
 	FILE *userText; //file IO pointer for reading files from the user
+	FILE *keyFile; //file IO pointer for reading substitution keys
 	
 	//file pointers for writing encrypted/decrypted text
 	FILE *decrypted; //file IO pointer to write decrypted messages
@@ -70,8 +78,9 @@ int main()
 	
 	char subKey[27]; //an array that will be used to hold a substitution key later
 	char fileName[256]; //array to hold file names - size is set to 256, could be probably be lower
+	char subKeyFile[256]; //array to hold the name of the file containing a substitution cipher key
 	
-	int rotKey; //int to hold a user-inputted rotation key
+	int rotKey = 0; //int to hold a user-inputted rotation key
 	int count = 0; //counter, reused many times
 
 	int choice = 0; //integer to store the user's choice
@@ -125,99 +134,214 @@ int main()
 				break;
 
 			case 11: //rotation cipher encryption from file
-				printf("\n11\n"); //TODO delete test markers
-				printf("What is the name of the file you wish to encrypt? Include the filetype (eg .txt) at the end\n\n");
-				scanf("%s", fileName);
+				printf("What is the name of the file you wish to encrypt? Include the filetype (eg .txt) at the end, and place the file in the same directory as this code\n\n");
+				scanf("%s", fileName); //scan for file name
 
-				printf("%s will be encrypted to the file encrypted.txt\n\n");
+				while(fileExists(fileName) == 0) //check if the file exists, and if it doesn't, continually asks for a new file name
+				{
+					printf("File does not exist, try again\n");
+					scanf("%s", fileName); //scan for file name again
+				}
 
 				userText = fopen(fileName, "r");
 				printf("What is the rotation key for encrypting this file?\n\n");
-				scanf("%d", rotKey);
+				scanf("%d", &rotKey);
 
 				//find size of file to use in array
-				fseek(userText, 0, SEEK_END);
-				fileSize = ftell(userText);
-				fseek(userText, 0, SEEK_SET);
-				fgets(subEncryptArray, fileSize + 1, userText);
-				rotationEncrypt(subEncryptArray, fileSize, rotKey);
-				fprintf(encrypted, "%s", subEncryptArray);
-				printf("The encrypted string is %s\n\n successfully written to encrypted.txt\n\n", subEncryptArray, fileName);
+				fseek(userText, 0, SEEK_END); //seek to the end of the array
+				fileSize = ftell(userText); //set file size to the position of the IO stream at the end of the file, ie the size of the file
+				fseek(userText, 0, SEEK_SET); //seek back to the start of the file
+
+				fgets(encryptArray, fileSize + 1, (FILE*)userText); //read the file into an array
+				rotationEncrypt(encryptArray, fileSize, rotKey); //encrypt the array
+				fprintf(encrypted, "%s", encryptArray); //print the encrypted array to the file encrypted.txt
+				printf("The encrypted string is %s\n\n successfully written to encrypted.txt\n\n", encryptArray); //print the encrypted array to console
+				fclose(userText); //close the file stream from the user in case they try to read the same file again
 				break;
 			
 			case 12: //rotation cipher encryption from console input
-				printf("\n12");
+			//TODO fix reading whitespace from console with strlen() implementation
 				printf("\nPlease enter the encryption key\n\n");
-				scanf("%s", rotKey);
+				scanf("%d", &rotKey);
+
 				printf("\nPlease enter the text to be encrypted\n\n");
-				scanf("%s", subEncryptArray);
-				rotationEncrypt(subEncryptArray, strlen(subEncryptArray), rotKey);
-				
-				fprintf(encrypted, "%s", subEncryptArray);
-				printf("The encrypted string is %s\n\n successfully written to encrypted.txt\n\n", subEncryptArray, fileName);
+				scanf("%s", encryptArray); //save to an array the text from the console
+
+				rotationEncrypt(encryptArray, strlen(encryptArray), rotKey); //encrypt the array
+				fprintf(encrypted, "%s", encryptArray); //print to a file the encrypted array
+				printf("The encrypted string is %s\n\n successfully written to encrypted.txt\n\n", encryptArray);
 				break;
 			
 			case 21: //rotation cipher decryption from file input
-				printf("\n21");
-				printf("\n11\n");
+			//FINISHED
 				printf("What is the name of the file you wish to decrypt? Include the filetype (eg .txt) at the end\n\n");
-				scanf("%s", fileName);
+				scanf("%s", fileName); //scan for file name
+
+				while(fileExists(fileName) == 0) //check if the file exists, and if it doesn't, continually asks for a new file name
+				{
+					printf("File does not exist, try again\n");
+					scanf("%s", fileName); //scan for file name again
+				}
 
 				printf("%s will be decrypted to the file decrypted.txt\n\n");
 
-				userText = fopen(fileName, "r");
+				userText = fopen(fileName, "r"); //open the file stream to the user's file
 				printf("What is the rotation key to decrypt this file?\n\n");
-				scanf("%d", rotKey);
+				scanf("%d", &rotKey);
 
 				//find size of file to use in array
 				fseek(userText, 0, SEEK_END);
 				fileSize = ftell(userText);
 				fseek(userText, 0, SEEK_SET);
-				fgets(subDecryptArray, fileSize + 1, userText);
-				printf("%d\n", fileSize);
-				rotationDecryptKey(subDecryptArray, fileSize, rotKey);
-				fprintf(decrypted, "%s", subDecryptArray);
-				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", subDecryptArray, fileName);
+
+				fgets(decryptArray, fileSize + 1, userText); //read the file to an array
+				rotationDecryptKey(decryptArray, fileSize, rotKey); //decrypt the array
+				fprintf(decrypted, "%s", decryptArray); //print the array to the file
+				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", decryptArray);
+				fclose(userText); //close the file stream from the user in case they try to read the same file again
 				break;
 			
 			case 22: //rotation cipher decryption from console input
-				printf("\n22");
+			//TODO fix reading whitespace from console with strlen() implementation
+			//FINISHED
+				printf("Please enter the text to be decrypted\n\n");
+				scanf("%s", decryptArray); //scan for file name
+
+				printf("What is the rotation key to decrypt this file?\n\n");
+				scanf("%d", &rotKey);
+
+				rotationDecryptKey(decryptArray, strlen(decryptArray), rotKey); //decrypt the array
+				fprintf(decrypted, "%s", decryptArray); //print the array to the file
+				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", decryptArray);
 				break;
 			
 			case 31: //substitution cipher encryption from file
-				printf("\n31");
+				printf("What is the name of the file you wish to encrypt? Include the filetype (eg .txt) at the end, and place the file in the same directory as this code\n\n");
+				scanf("%s", fileName); //scan for file name
+
+				while(fileExists(fileName) == 0) //check if the file exists, and if it doesn't, continually asks for a new file name
+				{
+					printf("File does not exist, try again\n");
+					scanf("%s", fileName); //scan for file name again
+				}
+
+				userText = fopen(fileName, "r");
+				printf("What is the name of the file with the substitution key for encrypting this file?\n\nIt should be formatted like \n#QWERTYUIOPASDFGHJKLZXCVBNM\nwhere the position of each letter tells you which letter is being replaced, with a # at the start.\nAn example key is included, called key.txt\n\n");
+				scanf("%s", subKeyFile);
+
+				keyFile = fopen(subKeyFile, "r"); //open the file stream to the key file
+				fgets(subKey, 27, (FILE*)keyFile); //copy the file to the array with the key
+				fclose(keyFile); //close the file
+
+				//find size of file to use in array
+				fseek(userText, 0, SEEK_END); //seek to the end of the array
+				fileSize = ftell(userText); //set file size to the position of the end of the file, ie the size of the file
+				fseek(userText, 0, SEEK_SET); //seek back to the start of the file
+
+				fgets(encryptArray, fileSize + 1, (FILE*)userText); //read the file into an array
+				subEncrypt(encryptArray, fileSize, subKey); //encrypt the array
+				fprintf(encrypted, "%s", encryptArray); //print the encrypted array to the file encrypted.txt
+				printf("The encrypted string is %s\n\n successfully written to encrypted.txt\n\n", encryptArray); //print the encrypted array to console
+				fclose(userText); //close the file stream from the user in case they try to read the same file again
 				break;
 			
 			case 32: //substitution cipher encryption from console input
-				printf("\n32");
+				printf("\nPlease enter the encryption key\n\n");
+				scanf("%s", subKey);
+
+				printf("\nPlease enter the text to be encrypted\n\n");
+				scanf("%s", encryptArray); //save to an array the text from the console
+
+				subEncrypt(encryptArray, strlen(encryptArray), subKey); //encrypt the array
+				fprintf(encrypted, "%s", encryptArray); //print to a file the encrypted array
+				printf("The encrypted string is %s\n\n successfully written to encrypted.txt\n\n", encryptArray);
 				break;
 			
 			case 41: //substitution cipher decryption from file
-				printf("\n41");
+				printf("What is the name of the file you wish to decrypt? Include the filetype (eg .txt) at the end, and place the file in the same directory as this code\n\n");
+				scanf("%s", fileName); //scan for file name
+
+				while(fileExists(fileName) == 0) //check if the file exists, and if it doesn't, continually asks for a new file name
+				{
+					printf("File does not exist, try again\n");
+					scanf("%s", fileName); //scan for file name again
+				}
+
+				userText = fopen(fileName, "r");
+				printf("What is the name of the file with the substitution key for decrypting this file?\n\nIt should be formatted like \n#QWERTYUIOPASDFGHJKLZXCVBNM\nwhere the position of each letter tells you which letter is being replaced, with a # at the start.\nAn example key is included, called key.txt\n\n");
+				scanf("%s", subKeyFile);
+
+				keyFile = fopen(subKeyFile, "r"); //open the file stream to the key file
+				fgets(subKey, 27, (FILE*)keyFile); //copy the file to the array with the key
+				fclose(keyFile); //close the file
+
+				//find size of file to use in array
+				fseek(userText, 0, SEEK_END); //seek to the end of the array
+				fileSize = ftell(userText); //set file size to the position of the end of the file, ie the size of the file
+				fseek(userText, 0, SEEK_SET); //seek back to the start of the file
+
+				fgets(decryptArray, fileSize + 1, (FILE*)userText); //read the file into an array
+				subDecrypt(decryptArray, fileSize, subKey); //encrypt the array
+				fprintf(decrypted, "%s", decryptArray); //print the encrypted array to the file encrypted.txt
+				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", decryptArray); //print the encrypted array to console
+				fclose(userText); //close the file stream from the user in case they try to read the same file again
 				break;
 			
 			case 42: //substitution cipher decryption from console input
-				printf("\n42");
+				printf("Please enter the text to be decrypted\n\n");
+				scanf("%s", decryptArray); //scan for text input
+
+				printf("What is the substitution key to decrypt this file? It should be all uppercase, starting with a # symbol\n\n");
+				scanf("%s", subKey);
+
+				subDecrypt(decryptArray, strlen(decryptArray), subKey); //decrypt the array
+				fprintf(decrypted, "%s", decryptArray); //print the array to the file
+				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", decryptArray);
 				break;
 			
 			case 51: //rotation cipher decryption without a key, from file 
-				printf("\n51");
+				printf("What is the name of the file you wish to decrypt? Include the filetype (eg .txt) at the end\n\n");
+				scanf("%s", fileName); //scan for file name
+
+				while(fileExists(fileName) == 0) //check if the file exists, and if it doesn't, continually asks for a new file name
+				{
+					printf("File does not exist, try again\n");
+					scanf("%s", fileName); //scan for file name again
+				}
+
+				printf("%s will be decrypted to the file decrypted.txt\n\n");
+
+				userText = fopen(fileName, "r"); //open the file stream to the user's file
+
+				//find size of file to use in array
+				fseek(userText, 0, SEEK_END);
+				fileSize = ftell(userText);
+				fseek(userText, 0, SEEK_SET);
+
+				fgets(decryptArray, fileSize + 1, userText); //read the file to an array
+				rotationDecryptForce(decryptArray, fileSize); //decrypt the array
+				fprintf(decrypted, "%s", decryptArray); //print the array to the file
+				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", decryptArray);
+				fclose(userText); //close the file stream from the user in case they try to read the same file again
 				break;
 			
 			case 52: //rotation cipher decryption without a key, from console input 
-				printf("\n52");
+				printf("Please enter the text to be decrypted\n\n");
+				scanf("%s", decryptArray); //scan for file name
+
+				rotationDecryptForce(decryptArray, strlen(decryptArray)); //decrypt the array
+				fprintf(decrypted, "%s", decryptArray); //print the array to the file
+				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", decryptArray);
 				break;
 			
 			case 61: //substitution cipher decryption with a key, from file
-				printf("\n61");
 				break;
 			
 			case 62: //substitution cipher decryption with a key, from console input
-				printf("\n62");
 				break;
 			
 			default:
-				printf("\nYou should not be here\n");
+				printf("\nYou should not be here\n"); //debugging, there should be no way for the flow of the program to allow this option
 				break;
 		}
 	}
@@ -272,11 +396,11 @@ void rotationEncrypt(char *x, int n, int k)
 
 /*
 A function that takes an array of characters from a pointer 'x' of size 'n' and decrypts it using a rotation cipher, with key 'k'
-This function is very similar to rotationEncrypt(), except it takes away a value of k
+This function is very similar to rotationEncrypt(), except it subtracts k instead of adding k
 
 Task 2
 
-Last Updated 03/04/2019
+Last Updated 28/04/2019
 */
 void rotationDecryptKey(char *x, int n, int k)
 {
@@ -289,7 +413,7 @@ void rotationDecryptKey(char *x, int n, int k)
 		//the following if statement determines if x[i] is a lowercase or capital letter based off the the ASCII value - if it is neither, the value is not changed
 		if(x[i] >= 65 && x[i] <= 90) //if the value of x at position i is a capital letter
 		{
-			x[i] = x[i] - 65 - k; //converts x to a number between 1 and 26, adds k, and finds x % 26 so as to 'loop back around', then converts it back to the correct ASCII values
+			x[i] = x[i] - 65 - k; //converts x to a number between 1 and 26, subtracts k, and finds x % 26 so as to 'loop back around', then converts it back to the correct ASCII values
 			if(x[i] < 0)
 			{
 				x[i] = 26 + x[i];
@@ -303,7 +427,7 @@ void rotationDecryptKey(char *x, int n, int k)
 		}
 		else if(x[i] >= 97 && x[i] <= 122) //if the value of x at position i is a lower case leter
 		{
-			x[i] = x[i] - 97 - k; //converts x to a number between 1 and 26, adds k, and finds x % 26 so as to 'loop back around', then converts it back to the correct ASCII values
+			x[i] = x[i] - 97 - k; //converts x to a number between 1 and 26, subtracts k, and finds x % 26 so as to 'loop back around', then converts it back to the correct ASCII values
 			if(x[i] < 0)
 			{
 				x[i] = 26 + x[i];
@@ -324,34 +448,44 @@ A function that brute forces a solution for a rotation cipher, by trying all pos
 
 Returns an integer that is assumed to be the key
 
-
-
-########################################### IMPORTANT complete when file io is done, implement common word checker
+Supercedes rotationDecryptNoKey, which simplay assumes E is the most common letter
 
 Task 5
 
-Last Updated 03/04/2019
+Last Updated 28/04/2019
 */
-int rotationDecryptNoKeyCheck(char *x, int n)
+int rotationDecryptForce(char *x, int n)
 {
-	int k = 0;
 	char temp[n]; //array to hold copies of x to test possible keys
-	//the following for loop cycles through each possible key, ie 'i' is the cipher key
-	for(int i; i < 26; i++)
+	int bestK = 0; //int to hold the 
+	int check = 0; //int to hold the highest number of matching words
+	//the following for loop cycles through each possible key, ie 'k' is the cipher key
+	for(int k = 0; k < 26; k++)
 	{
-		for(int j = 0; j < n; j++)
+		for(int j = 0; j < n; j++) //resets the temp array to be the same as the array x
 		{
-			
+			temp[j] = x[j];
+		}
+		rotationDecryptKey(temp, n, k);
+		if(check < spellCheck(temp, n))
+		{
+			check = spellCheck(temp, n);
+			bestK = k;
 		}
 	}
 
 
+	rotationDecryptKey(x, n, bestK);
 
-	return k;
+	return bestK;
 }
 
 
 /*
+LEGACY FUNCTION - LESS ACCURATE THAN rotationDecryptForce()
+
+NO LONGER USED IN THIS PROGRAM
+
 A function that assumes the most common character to be e, then determines the key from that assumption
 
 Returns an integer that is assumed to be the key
@@ -362,7 +496,7 @@ Task 5
 
 Last Updated 03/04/2019
 */
-int rotationDecryptNoKeyStatistical(char *x, int n)
+int rotationDecryptNoKey(char *x, int n)
 {
 	char temp[n]; //create a temporary array to store the values of the array x, so that x can be decrypted later
 	//initialise all the values of temp to the values of x
@@ -520,4 +654,84 @@ int findLargest(int *x, int n)
 		}
 	}
 	return largestPos;
+}
+
+/*
+a function to check if a file exists
+
+Last Updated 28/04/2019
+*/
+int fileExists(char * filename){
+    /* try to open file to read */
+    FILE *file;
+    if (file = fopen(filename, "r")){
+        fclose(file);
+        return 1;
+    }
+    return 0;
+}
+
+
+/*
+This function goes through an array, find how many words match with words in the dictionary provided, then returns that integer.
+It should be used to compare how likely different decryptions of the same array are correct, as it only returns an integer
+
+Last Updated 28/04/2018
+*/
+int spellCheck(char *x, int n)
+{
+	FILE *dict; //file IO pointer to read the dictionary
+	dict = fopen("google-10000-english.txt", "r"); //the file 'google-10000-english.txt' contains the 10000 most common words
+
+	int exitLoop = 0;
+	int position = 0; //integer to store position of the array so that the program basically reads left to right
+	int spellCount = 0;
+	int counter = 0;
+	char word[20]; //what sort of nerd uses words over 20 letters long
+	//also the dictionary used in this file has no words over that length
+	char dictWord[20];
+
+	while(position < n) //this loop will run until the position counter has reached the end of the array x
+	{
+		//printf("%c", x[position]);
+		//the following loop fills the word array with the next word from x - if the word is too long, it will be split into chunks
+		if(isspace(x[position] == 0))
+			printf("%c", x[position]);
+		for(int i = 0; ((i < 20) && ((x[position] != 32))); i++) //this loop will run until the word array is full or whitespace is reached
+		{
+			word[i] = x[position];
+			position++;
+			//printf("%c", word[i]);
+		}
+		position++;
+		//the following loop goes through each word in the dictionary and checks it against the word stored in the word array
+		while(getc(dict) != EOF && exitLoop == 0) //loop continues until the end of the dictionary file is reached
+		{
+			//fseek(dict, -1, ftell(dict)); //move the counter back 1, as checking for EOF moves it forward 1
+			for(int i = 0; i < strlen(word) && (getc(dict) != 13); i ++) //this loop will run until the dictWord array is the same length as the word array or whitespace is reached
+			{
+				dictWord[i] = getc(dict);
+			}
+			while((counter < strlen(word)) && ((dictWord[counter] == word[counter]) || (dictWord[counter] == word[counter] + 32))) //this loop continues until the word doesn't match, 32 is added in case the message is upper case
+			{
+				counter++;
+			}
+			if(counter == strlen(word)) //ie if a word is the same as a word from the dictionary
+			{
+				spellCount++;
+				exitLoop = 1;
+			}
+			counter = 0;
+		}
+		exitLoop = 0;
+		printf("%d\n", spellCount);
+		//set all characters to \0 so that strlen can be used
+		for(int i = 0; i < 20; i++)
+		{
+			word[i] = '\0';
+		}
+		fseek(dict, 0, SEEK_SET);
+	}
+	fclose(dict); //close the dictionary stream
+	return spellCount; //return the count of correct words
 }
