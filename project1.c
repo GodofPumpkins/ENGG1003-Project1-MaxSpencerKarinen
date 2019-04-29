@@ -2,7 +2,7 @@
 Coding Project 1 for UON ENGG1003
 Written by Max Spencer Karinen - c3264546 - spencerkarinen@gmail.com - c3264546@uon.edu.au
 Performs a variety of encryption and decryption algorithms, from both console and file IO
-Last Updated 24/04/2019
+Last Updated 29/04/2019
 */
 
 
@@ -52,7 +52,7 @@ int spellCheck(char *x, int n);
 Main function, essentially contains an interface for the various encryption and decryption algorithms used in the project
 
 
-Last Updated 24/04/2019
+Last Updated 29/04/2019
 */
 int main()
 {
@@ -664,7 +664,7 @@ It should be used to compare how likely different decryptions of the same array 
 
 Does not work, I'm pretty sure I'm using the isspace() function incorrectly as it doesn't seem to break words up correctly, but the flow should be correct
 
-Last Updated 28/04/2018
+Last Updated 29/04/2018
 */
 int spellCheck(char *x, int n)
 {
