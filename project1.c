@@ -319,7 +319,7 @@ int main()
 				fseek(userText, 0, SEEK_SET);
 
 				fgets(decryptArray, fileSize + 1, userText); //read the file to an array
-				rotationDecryptForce(decryptArray, fileSize); //decrypt the array
+				rotationDecryptNoKey(decryptArray, fileSize); //decrypt the array
 				fprintf(decrypted, "%s", decryptArray); //print the array to the file
 				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", decryptArray);
 				fclose(userText); //close the file stream from the user in case they try to read the same file again
@@ -329,15 +329,17 @@ int main()
 				printf("Please enter the text to be decrypted\n\n");
 				scanf("%s", decryptArray); //scan for file name
 
-				rotationDecryptForce(decryptArray, strlen(decryptArray)); //decrypt the array
+				rotationDecryptNoKey(decryptArray, strlen(decryptArray)); //decrypt the array
 				fprintf(decrypted, "%s", decryptArray); //print the array to the file
 				printf("The decrypted string is %s\n\n successfully written to decrypted.txt\n\n", decryptArray);
 				break;
 			
 			case 61: //substitution cipher decryption with a key, from file
+				printf("\n\nUnfinished\n\n");
 				break;
 			
 			case 62: //substitution cipher decryption with a key, from console input
+				printf("\n\nUnfinished\n\n");
 				break;
 			
 			default:
@@ -345,20 +347,6 @@ int main()
 				break;
 		}
 	}
-/*
-//hard code an array of letters to test ciphers
-	int k = 22; //rotation cipher amount
-	char test[] = "SJSFMPCRM WG O USBWIG. PIH WT MCI XIRUS O TWGV PM WHG OPWZWHM HC QZWAP O HFSS, WH KWZZ ZWJS WHG KVCZS ZWTS PSZWSJWBU HVOH WH WG GHIDWR. - OZPSFH SWBGHSWB";
-	char subsKey[] = "#QWERTYUIOPASDFGHJKLZXCVBNM";
-	int testLength = strlen(test);
-	rotationDecryptNoKeyStatistical(test, testLength);
-	printf("%s\n", test);
-	/*subEncrypt(test, testLength, subKey);
-	printf("substitution cipher encrypt: %s\n\n", test);
-	subDecrypt(test, testLength, subKey);
-	printf("substitution cipher decrypt: %s\n\n", test);
-	*/
-
 
 	return 0;
 }
@@ -450,6 +438,8 @@ Returns an integer that is assumed to be the key
 
 Supercedes rotationDecryptNoKey, which simplay assumes E is the most common letter
 
+UNFINISHED, spellCheck() not working
+
 Task 5
 
 Last Updated 28/04/2019
@@ -474,7 +464,6 @@ int rotationDecryptForce(char *x, int n)
 		}
 	}
 
-
 	rotationDecryptKey(x, n, bestK);
 
 	return bestK;
@@ -482,9 +471,6 @@ int rotationDecryptForce(char *x, int n)
 
 
 /*
-LEGACY FUNCTION - LESS ACCURATE THAN rotationDecryptForce()
-
-NO LONGER USED IN THIS PROGRAM
 
 A function that assumes the most common character to be e, then determines the key from that assumption
 
@@ -676,6 +662,8 @@ int fileExists(char * filename){
 This function goes through an array, find how many words match with words in the dictionary provided, then returns that integer.
 It should be used to compare how likely different decryptions of the same array are correct, as it only returns an integer
 
+Does not work, I'm pretty sure I'm using the isspace() function incorrectly as it doesn't seem to break words up correctly, but the flow should be correct
+
 Last Updated 28/04/2018
 */
 int spellCheck(char *x, int n)
@@ -695,9 +683,7 @@ int spellCheck(char *x, int n)
 	{
 		//printf("%c", x[position]);
 		//the following loop fills the word array with the next word from x - if the word is too long, it will be split into chunks
-		if(isspace(x[position] == 0))
-			printf("%c", x[position]);
-		for(int i = 0; ((i < 20) && ((x[position] != 32))); i++) //this loop will run until the word array is full or whitespace is reached
+		for(int i = 0; ((i < 20) && (isspace(x[position] == 0))); i++) //this loop will run until the word array is full or whitespace is reached
 		{
 			word[i] = x[position];
 			position++;
@@ -707,8 +693,8 @@ int spellCheck(char *x, int n)
 		//the following loop goes through each word in the dictionary and checks it against the word stored in the word array
 		while(getc(dict) != EOF && exitLoop == 0) //loop continues until the end of the dictionary file is reached
 		{
-			//fseek(dict, -1, ftell(dict)); //move the counter back 1, as checking for EOF moves it forward 1
-			for(int i = 0; i < strlen(word) && (getc(dict) != 13); i ++) //this loop will run until the dictWord array is the same length as the word array or whitespace is reached
+			fseek(dict, -1, SEEK_CUR); //move the counter back 1, as checking for EOF moves it forward 1
+			for(int i = 0; i < strlen(word) && (isspace(getc(dict)) != 8); i ++) //this loop will run until the dictWord array is the same length as the word array or whitespace is reached
 			{
 				dictWord[i] = getc(dict);
 			}
@@ -724,7 +710,6 @@ int spellCheck(char *x, int n)
 			counter = 0;
 		}
 		exitLoop = 0;
-		printf("%d\n", spellCount);
 		//set all characters to \0 so that strlen can be used
 		for(int i = 0; i < 20; i++)
 		{
